@@ -6,98 +6,93 @@ import os
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="WORD GAME HUB", layout="centered")
 
-# --- RESPONSIVE CSS ---
+# --- CUSTOM CSS FOR PERFECT ALIGNMENT ---
 st.markdown("""
     <style>
     .main { background-color: #0a0a12; }
     
-    /* Responsive Letter Boxes */
-    .letter-box {
-        display: inline-block;
-        width: 12vw; /* Uses viewport width to scale on mobile */
-        max-width: 60px;
-        height: 12vw;
-        max-height: 60px;
-        line-height: 12vw;
-        text-align: center;
-        border: 2px solid #00f2ff;
-        border-radius: 8px;
-        margin: 4px;
-        color: white;
-        font-weight: bold;
-        font-size: clamp(16px, 4vw, 28px); /* Adaptive font size */
-        background-color: #161625;
-        box-shadow: 0 4px 10px rgba(0, 242, 255, 0.3);
+    /* Image Grid Container */
+    .image-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .game-img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #333;
     }
 
-    /* Center everything on mobile */
-    .stImage, .stMarkdown, .stButton {
+    /* Magnetic Letter Boxes */
+    .letter-area {
         display: flex;
         justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 20px 0;
+    }
+    .letter-box {
+        width: 50px;
+        height: 50px;
+        line-height: 50px;
+        text-align: center;
+        border: 2px solid #00f2ff;
+        border-radius: 10px;
+        color: white;
+        font-weight: bold;
+        font-size: 24px;
+        background-color: #161625;
+        box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
     }
 
-    h1 { text-align: center; color: #ff0055; font-family: 'Impact'; font-size: clamp(30px, 10vw, 65px); }
-    
-    /* Improve button sizing for thumbs */
-    div.stButton > button {
-        width: 100%;
-        border-radius: 8px;
-        min-height: 3em;
+    /* Mobile Responsive Tweaks */
+    @media (max-width: 600px) {
+        .letter-box { width: 40px; height: 40px; line-height: 40px; font-size: 18px; }
+        h1 { font-size: 40px !important; }
     }
+
+    h1 { text-align: center; color: #ff0055; font-family: 'Impact'; font-size: 60px; }
+    div.stButton > button { width: 100%; border-radius: 8px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- WEB SOUND SYSTEM ---
-# Note: Browsers block "Auto-play" sounds until the user clicks something.
-# By the time a user clicks "Submit", sounds will be enabled.
+# --- SOUND SYSTEM ---
 def play_sound(sound_type):
     urls = {
         "success": "https://cdn.pixabay.com/audio/2022/03/15/audio_8236d9363d.mp3",
         "error": "https://cdn.pixabay.com/audio/2022/03/10/audio_c350702871.mp3"
     }
-    # We use a hidden iframe to trigger the sound without refreshing
     st.components.v1.html(f"""
         <audio autoplay><source src="{urls[sound_type]}" type="audio/mpeg"></audio>
+        <script>document.querySelector('audio').volume = 0.5;</script>
     """, height=0)
 
 # --- DATA CLASS ---
 class LevelData:
     def __init__(self):
         self.unscramble = [
-            {"word": "MALL", "hint": "Women's favourite shopping spot 💅🏻."},
-            {"word": "SKY", "hint": "The blue dome above us. 🌤️"},
-            {"word": "CAT", "hint": "Likes to drink milk. 🐱"},
-            {"word": "FISH", "hint": "Lives in water. 🐟"},
-            {"word": "FUTURE", "hint": "It is a tense and dark for us students. 😶‍🌫️"},
-            {"word": "PYTHON", "hint": "A coding language. 🐍"},
-            {"word": "LOGIC", "hint": "Reasoning behind code. 🧠"},
-            {"word": "BINARY", "hint": "0s and 1s. 🔢"},
-            {"word": "OBJECT", "hint": "Instance of a class. 📦"},
-            {"word": "SYNTAX", "hint": "Language rules. 📝"}
+            {"word": "MALL", "hint": "Shopping spot 💅🏻."}, {"word": "SKY", "hint": "Blue dome 🌤️"},
+            {"word": "CAT", "hint": "Drinks milk 🐱"}, {"word": "FISH", "hint": "Lives in water 🐟"},
+            {"word": "FUTURE", "hint": "Tense for students 😶‍🌫️"}, {"word": "PYTHON", "hint": "Coding language 🐍"},
+            {"word": "LOGIC", "hint": "Code reasoning 🧠"}, {"word": "BINARY", "hint": "0s and 1s 🔢"},
+            {"word": "OBJECT", "hint": "Class instance 📦"}, {"word": "SYNTAX", "hint": "Language rules 📝"}
         ]
         self.guess_word = [
-            {"word": "LAPTOP", "hint": "A portable computer. 💻"},
-            {"word": "COFFEE", "hint": "Fuel for programmers. ☕"},
-            {"word": "WIFI", "hint": "Connection you can't live without. 📶"},
-            {"word": "MOBILE", "hint": "Always in your hand. 📱"},
-            {"word": "KEYBOARD", "hint": "Used for typing code. ⌨️"},
-            {"word": "MOUSE", "hint": "Used to click and scroll. 🖱️"},
-            {"word": "BROWSER", "hint": "Chrome, Safari, or Edge. 🌐"},
-            {"word": "PIXELS", "hint": "Tiny dots on your screen. 🖼️"},
-            {"word": "CAMERA", "hint": "Used for video calls. 📷"},
-            {"word": "SCREEN", "hint": "Where you see the output. 🖥️"}
+            {"word": "LAPTOP", "hint": "Portable computer 💻"}, {"word": "COFFEE", "hint": "Programmer fuel ☕"},
+            {"word": "WIFI", "hint": "Essential connection 📶"}, {"word": "MOBILE", "hint": "In your hand 📱"},
+            {"word": "KEYBOARD", "hint": "Typing tool ⌨️"}, {"word": "MOUSE", "hint": "Click and scroll 🖱️"},
+            {"word": "BROWSER", "hint": "Web access 🌐"}, {"word": "PIXELS", "hint": "Screen dots 🖼️"},
+            {"word": "CAMERA", "hint": "Video calls 📷"}, {"word": "SCREEN", "hint": "Output display 🖥️"}
         ]
         self.grid_levels = [
-            {"word": "LEAF", "hint": "Green part of a plant.", "prefix": "leaf"},
-            {"word": "HIDE", "hint": "Keep out of sight.", "prefix": "hide"},
-            {"word": "COLD", "hint": "Low temperature. ❄️", "prefix": "cold"},
-            {"word": "BURN", "hint": "Hot and burning. 🔥", "prefix": "burn"},
-            {"word": "DROP", "hint": "Water falling from clouds. 🌧️", "prefix": "drop"},
-            {"word": "DUSK", "hint": "Time just before dark. 🌇", "prefix": "dusk"},
-            {"word": "MIST", "hint": "Tiny water droplets in air. ☁️", "prefix": "mist"},
-            {"word": "HAZE", "hint": "Atmospheric obscurity. 🌪️", "prefix": "haze"},
-            {"word": "TORN", "hint": "Ripped or damaged.", "prefix": "torn"},
-            {"word": "GLOW", "hint": "Soft light.", "prefix": "glow"}
+            {"word": "LEAF", "hint": "Plant part", "prefix": "leaf"}, {"word": "HIDE", "hint": "Stay unseen", "prefix": "hide"},
+            {"word": "COLD", "hint": "Low temp ❄️", "prefix": "cold"}, {"word": "BURN", "hint": "Hot 🔥", "prefix": "burn"},
+            {"word": "DROP", "hint": "Rain falling 🌧️", "prefix": "drop"}, {"word": "DUSK", "hint": "Before dark 🌇", "prefix": "dusk"},
+            {"word": "MIST", "hint": "Water in air ☁️", "prefix": "mist"}, {"word": "HAZE", "hint": "🌪️", "prefix": "haze"},
+            {"word": "TORN", "hint": "Ripped", "prefix": "torn"}, {"word": "GLOW", "hint": "Soft light", "prefix": "glow"}
         ]
 
 # --- SESSION STATE ---
@@ -114,22 +109,18 @@ if 'init' not in st.session_state:
 st.markdown("<h1>WORD GAME</h1>", unsafe_allow_html=True)
 
 if st.session_state.screen == "MENU":
-    st.write("### Choose Mode")
-    if st.button("1. UNSCRAMBLE WORDS"): st.session_state.screen = "LEVELS"; st.session_state.mode = "unscramble"; st.rerun()
-    if st.button("2. GUESS THE WORD"): st.session_state.screen = "LEVELS"; st.session_state.mode = "guess_word"; st.rerun()
-    if st.button("3. 4-IMAGE GRID QUIZ"): st.session_state.screen = "LEVELS"; st.session_state.mode = "grid_levels"; st.rerun()
+    if st.button("1. UNSCRAMBLE"): st.session_state.screen = "LEVELS"; st.session_state.mode = "unscramble"; st.rerun()
+    if st.button("2. GUESS WORD"): st.session_state.screen = "LEVELS"; st.session_state.mode = "guess_word"; st.rerun()
+    if st.button("3. 4-IMAGE GRID"): st.session_state.screen = "LEVELS"; st.session_state.mode = "grid_levels"; st.rerun()
 
 elif st.session_state.screen == "LEVELS":
     mode = st.session_state.mode
     st.button("⬅ Back", on_click=lambda: st.session_state.update({"screen": "MENU"}))
-    
     levels = getattr(st.session_state.data, mode)
-    # Using smaller column counts for better mobile wrapping
-    cols = st.columns(4) 
+    cols = st.columns(5)
     for i in range(len(levels)):
         is_locked = i > st.session_state.unlocked[mode]
-        label = f"{i+1}" if not is_locked else "🔒"
-        if cols[i % 4].button(label, key=f"lvl_{i}", disabled=is_locked):
+        if cols[i % 5].button(f"{i+1}" if not is_locked else "🔒", key=f"l_{i}", disabled=is_locked):
             st.session_state.level_idx = i
             st.session_state.screen = "PLAY"
             st.session_state.input_letters = []
@@ -140,56 +131,56 @@ elif st.session_state.screen == "PLAY":
     level = getattr(st.session_state.data, mode)[st.session_state.level_idx]
     target = level['word']
 
-    # Adaptive Stats Bar
+    # Stats Bar
     s1, s2 = st.columns(2)
     s1.metric("SCORE", st.session_state.score)
     s2.metric("LIVES", st.session_state.lives)
 
     if mode == "grid_levels":
-        # 2x2 Image Grid
-        img_cols = st.columns(2)
+        # Pure HTML/CSS for perfect image alignment
+        img_html = '<div class="image-container">'
         for i in range(1, 5):
             name = f"{level['prefix']}{i}.png"
-            path = f"OOP Project Quiz/{name}" if not os.path.exists(name) else name
-            if os.path.exists(path):
-                img_cols[(i-1)%2].image(path, use_container_width=True)
-            else:
-                img_cols[(i-1)%2].error(f"Missing: {name}")
+            # Attempt to find the file in root or Project folder
+            path = name if os.path.exists(name) else f"OOP Project Quiz/{name}"
+            img_html += f'<img src="data:image/png;base64,...">' if not os.path.exists(path) else "" 
+            # Note: For best results, Streamlit's st.image is safer for local files
+        st.markdown('<div class="image-container">', unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        for i in range(1, 5):
+            name = f"{level['prefix']}{i}.png"
+            path = name if os.path.exists(name) else f"OOP Project Quiz/{name}"
+            (c1 if i % 2 != 0 else c2).image(path if os.path.exists(path) else "https://via.placeholder.com/150", use_container_width=True)
 
     elif mode == "unscramble":
-        if 'shuff' not in st.session_state or st.session_state.get('last_s') != st.session_state.level_idx:
+        if 'sh' not in st.session_state or st.session_state.get('li') != st.session_state.level_idx:
             w = list(target); random.shuffle(w)
-            st.session_state.shuff = "".join(w)
-            st.session_state.last_s = st.session_state.level_idx
-        st.markdown(f"<h2 style='text-align:center; color:#00f2ff;'>{st.session_state.shuff}</h2>", unsafe_allow_html=True)
+            st.session_state.sh = "".join(w); st.session_state.li = st.session_state.level_idx
+        st.markdown(f"<h2 style='text-align:center; color:#00f2ff;'>{st.session_state.sh}</h2>", unsafe_allow_html=True)
 
-    # --- RESPONSIVE BOXES ---
-    display_html = "<div style='text-align:center; margin: 15px 0;'>"
+    # --- THE BOXES ---
+    box_html = '<div class="letter-area">'
     for i in range(len(target)):
         char = st.session_state.input_letters[i] if i < len(st.session_state.input_letters) else "&nbsp;"
-        display_html += f"<div class='letter-box'>{char}</div>"
-    display_html += "</div>"
-    st.markdown(display_html, unsafe_allow_html=True)
+        box_html += f'<div class="letter-box">{char}</div>'
+    st.markdown(box_html + '</div>', unsafe_allow_html=True)
 
     # --- LETTER BANK ---
-    if 'bank' not in st.session_state or st.session_state.get('b_idx') != st.session_state.level_idx:
+    if 'bank' not in st.session_state or st.session_state.get('bi') != st.session_state.level_idx:
         b = list(target) + [random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(4)]
-        random.shuffle(b)
-        st.session_state.bank = b
-        st.session_state.b_idx = st.session_state.level_idx
+        random.shuffle(b); st.session_state.bank = b; st.session_state.bi = st.session_state.level_idx
 
     st.write("Tap letters:")
-    # 5 columns works better for mobile banks
-    bank_cols = st.columns(5)
+    bank_cols = st.columns(6)
     for i, letter in enumerate(st.session_state.bank):
-        if bank_cols[i % 5].button(letter, key=f"bk_{i}"):
+        if bank_cols[i % 6].button(letter, key=f"bk_{i}"):
             if len(st.session_state.input_letters) < len(target):
                 st.session_state.input_letters.append(letter)
                 st.rerun()
 
-    # --- ACTION BUTTONS ---
+    # --- ACTIONS ---
     st.write("---")
-    a1, a2 = st.columns(2)
+    a1, a2, a3 = st.columns(3)
     if a1.button("CLEAR"): st.session_state.input_letters = []; st.rerun()
     if a2.button("SUBMIT", type="primary"):
         if "".join(st.session_state.input_letters) == target:
@@ -197,13 +188,10 @@ elif st.session_state.screen == "PLAY":
             st.session_state.score += 10
             st.session_state.unlocked[mode] = max(st.session_state.unlocked[mode], st.session_state.level_idx + 1)
             st.success("CORRECT!")
-            time.sleep(1)
-            st.session_state.screen = "LEVELS"
-            st.rerun()
+            time.sleep(1); st.session_state.screen = "LEVELS"; st.rerun()
         else:
             play_sound("error")
-            st.session_state.lives -= 1
-            st.error("WRONG!")
+            st.session_state.lives -= 1; st.error("WRONG!")
 
-    if st.button("HINT 💡"): st.info(f"HINT: {level['hint']}")
+    if a3.button("HINT 💡"): st.info(f"HINT: {level['hint']}")
     st.button("⬅ QUIT", on_click=lambda: st.session_state.update({"screen": "LEVELS"}))
