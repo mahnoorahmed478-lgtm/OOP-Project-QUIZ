@@ -6,47 +6,61 @@ import os
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="WORD GAME HUB", layout="centered")
 
-# --- CUSTOM CSS FOR MAGNETIC UI BOXES ---
+# --- RESPONSIVE CSS ---
 st.markdown("""
     <style>
     .main { background-color: #0a0a12; }
-    /* Magnetic Glowing Letter Boxes */
+    
+    /* Responsive Letter Boxes */
     .letter-box {
         display: inline-block;
-        width: 60px;
-        height: 60px;
-        line-height: 60px;
+        width: 12vw; /* Uses viewport width to scale on mobile */
+        max-width: 60px;
+        height: 12vw;
+        max-height: 60px;
+        line-height: 12vw;
         text-align: center;
-        border: 3px solid #00f2ff;
-        border-radius: 12px;
-        margin: 8px;
+        border: 2px solid #00f2ff;
+        border-radius: 8px;
+        margin: 4px;
         color: white;
         font-weight: bold;
-        font-size: 28px;
+        font-size: clamp(16px, 4vw, 28px); /* Adaptive font size */
         background-color: #161625;
-        box-shadow: 0 4px 15px rgba(0, 242, 255, 0.4);
+        box-shadow: 0 4px 10px rgba(0, 242, 255, 0.3);
     }
+
+    /* Center everything on mobile */
+    .stImage, .stMarkdown, .stButton {
+        display: flex;
+        justify-content: center;
+    }
+
+    h1 { text-align: center; color: #ff0055; font-family: 'Impact'; font-size: clamp(30px, 10vw, 65px); }
+    
+    /* Improve button sizing for thumbs */
     div.stButton > button {
+        width: 100%;
         border-radius: 8px;
-        font-weight: bold;
-        transition: 0.3s;
+        min-height: 3em;
     }
-    h1 { text-align: center; color: #ff0055; font-family: 'Impact'; font-size: 65px; }
-    .stMetric { background-color: #161625; padding: 10px; border-radius: 10px; border: 1px solid #333; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- WEB SOUND SYSTEM ---
+# Note: Browsers block "Auto-play" sounds until the user clicks something.
+# By the time a user clicks "Submit", sounds will be enabled.
 def play_sound(sound_type):
     urls = {
         "success": "https://cdn.pixabay.com/audio/2022/03/15/audio_8236d9363d.mp3",
         "error": "https://cdn.pixabay.com/audio/2022/03/10/audio_c350702871.mp3"
     }
+    # We use a hidden iframe to trigger the sound without refreshing
     st.components.v1.html(f"""
         <audio autoplay><source src="{urls[sound_type]}" type="audio/mpeg"></audio>
     """, height=0)
 
-# --- GAME DATA CLASS ---
+# --- DATA CLASS ---
 class LevelData:
     def __init__(self):
         self.unscramble = [
@@ -100,7 +114,7 @@ if 'init' not in st.session_state:
 st.markdown("<h1>WORD GAME</h1>", unsafe_allow_html=True)
 
 if st.session_state.screen == "MENU":
-    st.write("### Choose Game Mode")
+    st.write("### Choose Mode")
     if st.button("1. UNSCRAMBLE WORDS"): st.session_state.screen = "LEVELS"; st.session_state.mode = "unscramble"; st.rerun()
     if st.button("2. GUESS THE WORD"): st.session_state.screen = "LEVELS"; st.session_state.mode = "guess_word"; st.rerun()
     if st.button("3. 4-IMAGE GRID QUIZ"): st.session_state.screen = "LEVELS"; st.session_state.mode = "grid_levels"; st.rerun()
@@ -109,13 +123,13 @@ elif st.session_state.screen == "LEVELS":
     mode = st.session_state.mode
     st.button("⬅ Back", on_click=lambda: st.session_state.update({"screen": "MENU"}))
     
-    st.write(f"### Select {mode.upper()} Level")
     levels = getattr(st.session_state.data, mode)
-    cols = st.columns(5)
+    # Using smaller column counts for better mobile wrapping
+    cols = st.columns(4) 
     for i in range(len(levels)):
         is_locked = i > st.session_state.unlocked[mode]
         label = f"{i+1}" if not is_locked else "🔒"
-        if cols[i % 5].button(label, key=f"lvl_btn_{i}", disabled=is_locked):
+        if cols[i % 4].button(label, key=f"lvl_{i}", disabled=is_locked):
             st.session_state.level_idx = i
             st.session_state.screen = "PLAY"
             st.session_state.input_letters = []
@@ -126,35 +140,31 @@ elif st.session_state.screen == "PLAY":
     level = getattr(st.session_state.data, mode)[st.session_state.level_idx]
     target = level['word']
 
-    # Stats Bar
+    # Adaptive Stats Bar
     s1, s2 = st.columns(2)
     s1.metric("SCORE", st.session_state.score)
     s2.metric("LIVES", st.session_state.lives)
 
     if mode == "grid_levels":
+        # 2x2 Image Grid
         img_cols = st.columns(2)
         for i in range(1, 5):
-            # FIXED PATH: This checks both the root and the Project folder
-            img_name = f"{level['prefix']}{i}.png"
-            alt_path = f"OOP Project Quiz/{img_name}"
-            
-            final_path = img_name if os.path.exists(img_name) else alt_path
-            
-            if os.path.exists(final_path):
-                img_cols[(i-1)%2].image(final_path, use_container_width=True)
+            name = f"{level['prefix']}{i}.png"
+            path = f"OOP Project Quiz/{name}" if not os.path.exists(name) else name
+            if os.path.exists(path):
+                img_cols[(i-1)%2].image(path, use_container_width=True)
             else:
-                img_cols[(i-1)%2].error(f"Missing: {img_name}")
+                img_cols[(i-1)%2].error(f"Missing: {name}")
 
     elif mode == "unscramble":
-        if 'shuff' not in st.session_state or st.session_state.get('curr_shuff') != st.session_state.level_idx:
-            w_list = list(target)
-            random.shuffle(w_list)
-            st.session_state.shuff = "".join(w_list)
-            st.session_state.curr_shuff = st.session_state.level_idx
+        if 'shuff' not in st.session_state or st.session_state.get('last_s') != st.session_state.level_idx:
+            w = list(target); random.shuffle(w)
+            st.session_state.shuff = "".join(w)
+            st.session_state.last_s = st.session_state.level_idx
         st.markdown(f"<h2 style='text-align:center; color:#00f2ff;'>{st.session_state.shuff}</h2>", unsafe_allow_html=True)
 
-    # --- THE BOXES ---
-    display_html = "<div style='text-align:center; margin: 25px 0;'>"
+    # --- RESPONSIVE BOXES ---
+    display_html = "<div style='text-align:center; margin: 15px 0;'>"
     for i in range(len(target)):
         char = st.session_state.input_letters[i] if i < len(st.session_state.input_letters) else "&nbsp;"
         display_html += f"<div class='letter-box'>{char}</div>"
@@ -162,33 +172,32 @@ elif st.session_state.screen == "PLAY":
     st.markdown(display_html, unsafe_allow_html=True)
 
     # --- LETTER BANK ---
-    if 'bank' not in st.session_state or st.session_state.get('bank_idx') != st.session_state.level_idx:
-        bank = list(target) + [random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(4)]
-        random.shuffle(bank)
-        st.session_state.bank = bank
-        st.session_state.bank_idx = st.session_state.level_idx
+    if 'bank' not in st.session_state or st.session_state.get('b_idx') != st.session_state.level_idx:
+        b = list(target) + [random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(4)]
+        random.shuffle(b)
+        st.session_state.bank = b
+        st.session_state.b_idx = st.session_state.level_idx
 
-    st.write("Tap letters to build word:")
-    bank_cols = st.columns(7)
+    st.write("Tap letters:")
+    # 5 columns works better for mobile banks
+    bank_cols = st.columns(5)
     for i, letter in enumerate(st.session_state.bank):
-        if bank_cols[i % 7].button(letter, key=f"bk_{i}"):
+        if bank_cols[i % 5].button(letter, key=f"bk_{i}"):
             if len(st.session_state.input_letters) < len(target):
                 st.session_state.input_letters.append(letter)
                 st.rerun()
 
-    # --- ACTIONS ---
-    a1, a2, a3 = st.columns(3)
-    if a1.button("CLEAR"): 
-        st.session_state.input_letters = []
-        st.rerun()
-
+    # --- ACTION BUTTONS ---
+    st.write("---")
+    a1, a2 = st.columns(2)
+    if a1.button("CLEAR"): st.session_state.input_letters = []; st.rerun()
     if a2.button("SUBMIT", type="primary"):
         if "".join(st.session_state.input_letters) == target:
             play_sound("success")
             st.session_state.score += 10
             st.session_state.unlocked[mode] = max(st.session_state.unlocked[mode], st.session_state.level_idx + 1)
             st.success("CORRECT!")
-            time.sleep(1.5)
+            time.sleep(1)
             st.session_state.screen = "LEVELS"
             st.rerun()
         else:
@@ -196,7 +205,5 @@ elif st.session_state.screen == "PLAY":
             st.session_state.lives -= 1
             st.error("WRONG!")
 
-    if a3.button("HINT 💡"):
-        st.info(f"HINT: {level['hint']}")
-
-    st.button("⬅ QUIT TO LEVELS", on_click=lambda: st.session_state.update({"screen": "LEVELS"}))
+    if st.button("HINT 💡"): st.info(f"HINT: {level['hint']}")
+    st.button("⬅ QUIT", on_click=lambda: st.session_state.update({"screen": "LEVELS"}))
