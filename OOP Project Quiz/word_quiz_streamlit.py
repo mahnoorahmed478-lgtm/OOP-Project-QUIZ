@@ -6,39 +6,38 @@ import os
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="WORD GAME HUB", layout="centered")
 
-# --- CUSTOM CSS FOR BOXES & UI ---
+# --- CUSTOM CSS FOR MAGNETIC UI BOXES ---
 st.markdown("""
     <style>
     .main { background-color: #0a0a12; }
-    /* The Answer Boxes you asked for */
+    /* Magnetic Glowing Letter Boxes */
     .letter-box {
         display: inline-block;
-        width: 45px;
-        height: 45px;
-        line-height: 45px;
+        width: 60px;
+        height: 60px;
+        line-height: 60px;
         text-align: center;
-        border: 2px solid #00f2ff;
-        border-radius: 8px;
-        margin: 5px;
+        border: 3px solid #00f2ff;
+        border-radius: 12px;
+        margin: 8px;
         color: white;
         font-weight: bold;
-        font-size: 22px;
+        font-size: 28px;
         background-color: #161625;
-        box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 242, 255, 0.4);
     }
     div.stButton > button {
         border-radius: 8px;
         font-weight: bold;
         transition: 0.3s;
     }
-    h1 { text-align: center; color: #ff0055; font-family: 'Impact'; font-size: 60px; }
+    h1 { text-align: center; color: #ff0055; font-family: 'Impact'; font-size: 65px; }
     .stMetric { background-color: #161625; padding: 10px; border-radius: 10px; border: 1px solid #333; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- WEB SOUND SYSTEM ---
 def play_sound(sound_type):
-    # Using public URLs for common game sounds
     urls = {
         "success": "https://cdn.pixabay.com/audio/2022/03/15/audio_8236d9363d.mp3",
         "error": "https://cdn.pixabay.com/audio/2022/03/10/audio_c350702871.mp3"
@@ -47,7 +46,7 @@ def play_sound(sound_type):
         <audio autoplay><source src="{urls[sound_type]}" type="audio/mpeg"></audio>
     """, height=0)
 
-# --- INTERNAL DATA CLASS (Fixed the Import Error) ---
+# --- GAME DATA CLASS ---
 class LevelData:
     def __init__(self):
         self.unscramble = [
@@ -133,25 +132,29 @@ elif st.session_state.screen == "PLAY":
     s2.metric("LIVES", st.session_state.lives)
 
     if mode == "grid_levels":
-        # 4-Image Grid Display
         img_cols = st.columns(2)
         for i in range(1, 5):
+            # FIXED PATH: This checks both the root and the Project folder
             img_name = f"{level['prefix']}{i}.png"
-            if os.path.exists(img_name):
-                img_cols[(i-1)%2].image(img_name, use_container_width=True)
+            alt_path = f"OOP Project Quiz/{img_name}"
+            
+            final_path = img_name if os.path.exists(img_name) else alt_path
+            
+            if os.path.exists(final_path):
+                img_cols[(i-1)%2].image(final_path, use_container_width=True)
             else:
-                img_cols[(i-1)%2].info(f"Image: {img_name}")
+                img_cols[(i-1)%2].error(f"Missing: {img_name}")
 
     elif mode == "unscramble":
-        if 'shuffled' not in st.session_state or st.session_state.get('last_shuff') != st.session_state.level_idx:
+        if 'shuff' not in st.session_state or st.session_state.get('curr_shuff') != st.session_state.level_idx:
             w_list = list(target)
             random.shuffle(w_list)
-            st.session_state.shuffled = "".join(w_list)
-            st.session_state.last_shuff = st.session_state.level_idx
-        st.markdown(f"<h2 style='text-align:center; color:#00f2ff;'>{st.session_state.shuffled}</h2>", unsafe_allow_html=True)
+            st.session_state.shuff = "".join(w_list)
+            st.session_state.curr_shuff = st.session_state.level_idx
+        st.markdown(f"<h2 style='text-align:center; color:#00f2ff;'>{st.session_state.shuff}</h2>", unsafe_allow_html=True)
 
-    # --- THE BOXES YOU ASKED FOR ---
-    display_html = "<div style='text-align:center; margin: 20px 0;'>"
+    # --- THE BOXES ---
+    display_html = "<div style='text-align:center; margin: 25px 0;'>"
     for i in range(len(target)):
         char = st.session_state.input_letters[i] if i < len(st.session_state.input_letters) else "&nbsp;"
         display_html += f"<div class='letter-box'>{char}</div>"
@@ -159,11 +162,11 @@ elif st.session_state.screen == "PLAY":
     st.markdown(display_html, unsafe_allow_html=True)
 
     # --- LETTER BANK ---
-    if 'bank' not in st.session_state or st.session_state.get('last_bank_idx') != st.session_state.level_idx:
+    if 'bank' not in st.session_state or st.session_state.get('bank_idx') != st.session_state.level_idx:
         bank = list(target) + [random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(4)]
         random.shuffle(bank)
         st.session_state.bank = bank
-        st.session_state.last_bank_idx = st.session_state.level_idx
+        st.session_state.bank_idx = st.session_state.level_idx
 
     st.write("Tap letters to build word:")
     bank_cols = st.columns(7)
@@ -196,6 +199,4 @@ elif st.session_state.screen == "PLAY":
     if a3.button("HINT 💡"):
         st.info(f"HINT: {level['hint']}")
 
-    if st.button("⬅ QUIT TO LEVELS"):
-        st.session_state.screen = "LEVELS"
-        st.rerun()
+    st.button("⬅ QUIT TO LEVELS", on_click=lambda: st.session_state.update({"screen": "LEVELS"}))
